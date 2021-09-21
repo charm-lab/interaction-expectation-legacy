@@ -14,14 +14,34 @@ You'll also need to get the GRAB dataset file from https://grab.is.tue.mpg.de/
 
 Make a file in machine_directories that points to the appropriate files.
 
+##
+
+    conda create --name <env> --file conda_requirements.txt
+    pip install -r requirements_pip.txt
+
 ##SMPL-X
 
-Install smplx per https://github.com/vchoutas/smplx
+If there are any issues with smplx, install per https://github.com/vchoutas/smplx
 
 #Data Generation
 
-Create a data_regen yml, similar to the one in machine_directories.
+Create a data_regen directories yml, similar to the one in configs/machine_directories.
 
-Then run the following to generate data:
+configs/data_generation/data_generation.yml includes parameters that can be modified, most notably noise levels.
 
-    generate_data.py --directories_file configs/machine_directories/bohg-ws-3_data_regen_directories.yml --config_file configs/data_generation/data_generation.yml
+
+Run the following to generate data:
+
+    generate_data.py --directories_file configs/machine_directories/data_regen_directories.yml --config_file configs/data_generation/data_generation.yml
+
+
+#Running dense_lstm
+Create a base directories yml, similar to the one in configs/machine_directories.
+
+configs/experiments/experiment_config.yml includes parameters that can be modified, most notably noise levels.
+
+
+Run the following to generate data:
+
+    generate_data.py --directories_file configs/machine_directories/directories.yml --config_file configs/experiments/experiment_config.yml
+
