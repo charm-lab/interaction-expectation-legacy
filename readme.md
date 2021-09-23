@@ -48,5 +48,5 @@ configs/experiments/experiment_config.yml includes parameters that can be modifi
 
 Run the following to generate data:
 
-    generate_data.py --directories_file configs/machine_directories/directories.yml --config_file configs/experiments/experiment_config.yml
+    run.py --directories_file configs/machine_directories/directories.yml --config_file configs/experiments/experiment_config.yml
 
