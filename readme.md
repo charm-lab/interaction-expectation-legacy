@@ -37,7 +37,7 @@ configs/data_generation/data_generation.yml includes parameters that can be modi
 
 Run the following to generate data:
 
-    generate_data.py --directories_file configs/machine_directories/data_regen_directories.yml --config_file configs/data_generation/data_generation.yml
+    python generate_data.py --directories_file configs/machine_directories/data_regen_directories.yml --config_file configs/data_generation/data_generation.yml
 
 
 # Running dense_lstm
