@@ -10,7 +10,7 @@ baseline_window: null
 
 # Dataset
 regenerate_data: True
-parallel_generation: False
+parallel_generation: True
 visualize_generation: False
 obj_centered: True
 

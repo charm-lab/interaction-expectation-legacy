@@ -279,24 +279,6 @@ def run_training(cfg_name):
                             first_contact_total_test[test_range] - first_contact_fail_test[test_range])
                 first_contact_fail_test[test_range] /= first_contact_total_test[test_range]
 
-            for obj in obj_vals.keys():
-                count = obj_vals[obj]['fail'] + torch.numel(obj_vals[obj]['error'])
-                fail_rate = obj_vals[obj]['fail'] / count
-                error = torch.mean(obj_vals[obj]['error'])
-                error_std = torch.std(obj_vals[obj]['error'])
-                print(f'{obj}: fail:{fail_rate} error:{error} std:{error_std}')
-            for subj in subj_vals.keys():
-                count = subj_vals[subj]['fail'] + torch.numel(subj_vals[subj]['error'])
-                fail_rate = subj_vals[subj]['fail'] / count
-                error = torch.mean(subj_vals[subj]['error'])
-                error_std = torch.std(subj_vals[subj]['error'])
-                print(f'{subj}: fail:{fail_rate} error:{error} std:{error_std}')
-            count = all_vals['fail'] + torch.numel(all_vals['error'])
-            fail_rate = all_vals['fail'] / count
-            error = torch.mean(all_vals['error'])
-            error_std = torch.std(all_vals['error'])
-            print(f'All: fail:{fail_rate} error:{error} std:{error_std}')
-
             model = training_network.model
             optimizer = training_network.optimizer
             loss = training_network.loss
