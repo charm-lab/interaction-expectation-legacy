@@ -226,17 +226,13 @@ class DataContainer(Dataset):
                 Parallel(n_jobs=num_cores)(delayed(DataContainer.generateGRABDataFunc)(cfg,seq=seq) for seq in all_seqs)
 
         else:
-            yappi.set_clock_type("cpu")
-            yappi.start()
             all_seqs = Path(cfg['grab_path']).glob('*/*npz')
-            for seq in list(all_seqs)[0:20]:
+            for seq in all_seqs:
                 print(seq)
                 if cfg['regenerate_data']:
                     DataContainer.generateGRABDataFunc(cfg, seq)
                 if cfg['visualize_generation']:
                     DataContainer.visGRABData(hand_vis, cfg, seq=seq)
-            yappi.stop()
-            yappi.get_func_stats().print_all()
 
     @classmethod
     def generateBaseLineFunc(self, cfg, seq):
