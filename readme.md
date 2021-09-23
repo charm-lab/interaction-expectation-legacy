@@ -16,6 +16,8 @@ Need to install GRAB on your system.
 
 Get GRAB from https://github.com/msalvato/GRAB and clone as "grab". Put this in a folder named 'grab' (important!). So the folder structure will be "grab/grab/*"
 
+Move 'setup.py' to the outer grab folder
+
 Run 'python setup.py install' from outer grab directory.
 
 You'll also need to get the GRAB dataset file from https://grab.is.tue.mpg.de/
