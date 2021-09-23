@@ -14,7 +14,7 @@ Install per your system: https://pytorch.org/get-started/locally/
 ## GRAB
 Need to install GRAB on your system.
 
-Get GRAB from https://github.com/msalvato/GRAB. Put this in a folder named 'grab' (important!).
+Get GRAB from https://github.com/msalvato/GRAB and clone as "grab". Put this in a folder named 'grab' (important!). So the folder structure will be "grab/grab/*"
 
 Run 'python setup.py install' from outer grab directory.
 
