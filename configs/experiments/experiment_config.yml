@@ -1,5 +1,5 @@
 experiment_name: 12jointredo2
-continue_experiment: True
+continue_experiment: False
 
 # Network
 network_type: denselstm

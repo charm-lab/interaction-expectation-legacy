@@ -163,16 +163,16 @@ class DataContainer(Dataset):
         data_holder.generateObjVerts(reduced='full')
 
         data_holder.generateHandJoints()
-        data_holder.generateHandVerts()
+        #data_holder.generateHandVerts()
 
         data_holder.generateContacts()
 
-        data_holder.generateHandFaces()
+        #data_holder.generateHandFaces()
         data_holder.generatePointDistsJoints()
 
         data_holder.saveContacts()
-        data_holder.saveHandVerts()
-        data_holder.saveHandFaces()
+        #data_holder.saveHandVerts()
+        #data_holder.saveHandFaces()
         data_holder.saveHandJoints()
         data_holder.savePointDistsJoints()
 
