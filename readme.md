@@ -14,8 +14,12 @@ Make a file in machine_directories that points to the appropriate files.
 
 ## Env files
 
-    conda create --name <env> --file conda_requirements.txt
+    conda env create --name <env> --file conda_env.yml
     pip install -r requirements_pip.txt
+    
+## Pytorch
+
+Install per your system: https://pytorch.org/get-started/locally/
 
 ## SMPL-X
 
