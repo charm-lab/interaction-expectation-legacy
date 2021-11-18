@@ -1,5 +1,9 @@
-experiment_name: 12jointredo2
+experiment_name: 12joints_addlstm2
 continue_experiment: False
+
+lstm1: True
+lstm2: True
+lstm3: True
 
 # Network
 network_type: denselstm
@@ -23,7 +27,7 @@ gpu_num: 0
 profile: False
 batch_size: 1
 epochs: 1000
-epoch_checkmarks: 100
+epoch_checkmarks: 10
 
 epoch_draw: False
 draw_first_epoch: True

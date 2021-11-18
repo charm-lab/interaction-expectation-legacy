@@ -174,8 +174,6 @@ def run_training(cfg_name):
             for in_dict, target_dict, meta_idx, meta_data in val_loader:
                 if in_dict == 0:
                     continue
-
-
                 batch_size = meta_idx.shape[0]
                 val_loss_cur, val_predicted_batch, predicted_dict = training_network.val_epoch(in_dict, target_dict)
                 val_loss += val_loss_cur * batch_size
