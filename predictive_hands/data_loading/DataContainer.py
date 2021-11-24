@@ -52,7 +52,7 @@ class DataContainer(Dataset):
     def generateInputTarget(self, meta_file):
         times_ahead = self.cfg['times_ahead']
         max_times_ahead = max(times_ahead)
-        meta_file = pathlib.Path('/scr-ssd/').joinpath(*meta_file.parts[2:])
+        #meta_file = pathlib.Path('/scr-ssd/').joinpath(*meta_file.parts[2:])
         meta_data = np.load(meta_file, allow_pickle=True).item()
         grab_instance = GRABInstance(self.cfg, self.device_type, meta_data=meta_data)
         contacts = grab_instance.loadContacts(self.cfg['hands'])

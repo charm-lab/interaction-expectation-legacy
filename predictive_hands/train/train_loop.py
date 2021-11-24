@@ -158,6 +158,7 @@ def run_training(cfg_name):
         train_loss /= len(train_dataset)
         
         val_loss = 0
+        all_vals = {}
         first_contact_thresholds = list(np.arange(0, 1.01, .01))
         first_contact_timings = {}
         first_contact_totals = {}
@@ -168,10 +169,15 @@ def run_training(cfg_name):
             first_contact_totals[test_range] = np.zeros((len(first_contact_thresholds)))
             first_contact_fails[test_range] = np.zeros((len(first_contact_thresholds)))
             first_contact_ranges[test_range] = np.zeros((len(first_contact_thresholds)))
+            all_vals[test_range] = []
+        for i in range(len(first_contact_thresholds)):
+            all_vals[test_range].append({'error': torch.zeros((0)).cuda(), 'fail': 0})
 
         training_network.model.eval()
+        counter = 0
         with torch.no_grad():
             for in_dict, target_dict, meta_idx, meta_data in val_loader:
+                counter += 1
                 if in_dict == 0:
                     continue
                 batch_size = meta_idx.shape[0]
@@ -185,10 +191,20 @@ def run_training(cfg_name):
                                                                              device_type,
                                                                              first_contact_thresholds[
                                                                                  i], test_range)
+                            if i == 51 and f_timing is not None and f_timing > 200:
+                                print("test")
+                            # f_timing, f_range = first_contact_timing(
+                            #     predicted_dict['contacts'][hand].to(device_type),
+                            #     target_dict['contacts'][hand].to(device_type),
+                            #     device_type,
+                            #     best_first_contact_thresh[test_range], test_range)
+
                             first_contact_totals[test_range][i] += 1
                             if f_timing is not None and f_timing > -max(cfg['times_ahead']):
                                 first_contact_timings[test_range][i] += torch.abs(f_timing) * batch_size / len(cfg['hands'])
                                 first_contact_ranges[test_range][i] += torch.abs(f_range) * batch_size / len(cfg['hands'])
+                                all_vals[test_range][i]['error'] = torch.cat(
+                                    (all_vals[test_range][i]['error'], torch.abs(f_timing).unsqueeze(0)))
                             else:
                                 first_contact_fails[test_range][i] += 1
 
@@ -228,7 +244,7 @@ def run_training(cfg_name):
         if val_loss < best_val:
             obj_vals = {}
             subj_vals = {}
-            all_vals = {'error': torch.zeros((0)).cuda(), 'fail': 0}
+            all_vals_test = {'error': torch.zeros((0)).cuda(), 'fail': 0}
             with torch.no_grad():
                 for in_dict, target_dict, meta_idx, meta_data in test_loader:
                     if in_dict == 0:
@@ -242,6 +258,8 @@ def run_training(cfg_name):
                     batch_size = meta_idx.shape[0]
                     test_loss_cur, test_predicted_batch, predicted_dict = training_network.val_epoch(in_dict, target_dict)
                     test_loss += test_loss_cur * batch_size
+                    if meta_data['obj_name'][0] == 'fryingpan' and meta_data['subj_id'][0] == 's8' and  meta_data['intent'][0] == 'cook':
+                        print('hi')
                     for hand in cfg['hands']:
                         for test_range in cfg['test_ranges']:
 
@@ -260,13 +278,13 @@ def run_training(cfg_name):
                                     (obj_vals[obj_name]['error'], torch.abs(f_timing).unsqueeze(0)))
                                 subj_vals[subj_id]['error'] = torch.cat(
                                     (subj_vals[subj_id]['error'], torch.abs(f_timing).unsqueeze(0)))
-                                all_vals['error'] = torch.cat(
-                                    (all_vals['error'], torch.abs(f_timing).unsqueeze(0)))
+                                all_vals_test['error'] = torch.cat(
+                                    (all_vals_test['error'], torch.abs(f_timing).unsqueeze(0)))
                             else:
                                 first_contact_fail_test[test_range] += 1
                                 obj_vals[obj_name]['fail'] += 1
                                 subj_vals[subj_id]['fail'] += 1
-                                all_vals['fail'] += 1
+                                all_vals_test['fail'] += 1
 
             best_val = val_loss
             test_loss /= len(test_dataset)

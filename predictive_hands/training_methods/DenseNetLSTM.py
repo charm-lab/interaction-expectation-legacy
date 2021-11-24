@@ -60,10 +60,13 @@ class DenseNetLSTM(TrainingMethod):
 
             if cfg['lstm1']:
                 self.lstm1 = nn.LSTM(input_dim, input_dim)
+                self.attn1 = nn.MultiheadAttention(input_dim, num_head=10)
             if cfg['lstm2']:
                 self.lstm2 = nn.LSTM(hidden_dim, hidden_dim)
+                self.attn2 = nn.MultiheadAttention(hidden_dim, num_head=10)
             if cfg['lstm3']:
                 self.lstm3 = nn.LSTM(hidden_dim, hidden_dim)
+                self.attn3 = nn.MultiheadAttention(hidden_dim, num_head=10)
 
         def sliding_batch_norm(self, x):
             x_new = torch.zeros(x.shape, device=self.device_type)

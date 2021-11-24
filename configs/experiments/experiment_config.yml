@@ -1,9 +1,9 @@
-experiment_name: 12joints_addlstm2
+experiment_name: 12joints_checkvalidity
 continue_experiment: False
 
-lstm1: True
-lstm2: True
-lstm3: True
+lstm1: False
+lstm2: False
+lstm3: False
 
 # Network
 network_type: denselstm
