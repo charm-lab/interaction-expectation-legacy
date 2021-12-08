@@ -7,7 +7,7 @@ lstm3: False
 attn1: False
 attn2: False
 attn3: False
-attn4: False
+attn4: True
 
 # Network
 network_type: denselstm
@@ -74,34 +74,34 @@ datetime: null
 
 # filter Conditions
 # if null, load all for that condition
-train_conditions: 
-  subj_id: [s1, s2, s3, s4, s5, s6]
-  intent: null
-  obj_name: null
-
-val_conditions:
-  subj_id: [s9, s10]
-  intent: null
-  obj_name: null
-
-test_conditions:
-  subj_id: [s7, s8]
-  intent: null
-  obj_name: null
-
-
-## Conditions for object split
 #train_conditions:
-#  subj_id: null
+#  subj_id: [s7, s8, s3, s4, s5, s6]
 #  intent: null
-#  obj_name: [ pyramidlarge, stanfordbunny, gamecontroller, pyramidsmall, scissors, bowl, apple, duck, cup, phone, toruslarge, wineglass, pyramidmedium, camera, spheresmall, teapot, mouse, elephant, stapler, torussmall, cylindersmall, torusmedium, cubelarge, binoculars, train, mug, fryingpan, headphones, spheremedium, piggybank, watch ]
+#  obj_name: null
 #
 #val_conditions:
-#  subj_id: null
+#  subj_id: [s1, s2]
 #  intent: null
-#  obj_name: [ lightbulb, waterbottle, knife, toothbrush, flashlight, toothpaste, doorknob, airplane, spherelarge, hammer ]
+#  obj_name: null
 #
 #test_conditions:
-#  subj_id: null
+#  subj_id: [s9, s10]
 #  intent: null
-#  obj_name: [ alarmclock, banana, eyeglasses, hand, stamp, cylindermedium, cubemedium, flute, cubesmall, cylinderlarge ]
+#  obj_name: null
+
+
+# Conditions for object split
+train_conditions:
+  subj_id: null
+  intent: null
+  obj_name: [ pyramidlarge, stanfordbunny, gamecontroller, pyramidsmall, scissors, bowl, apple, duck, cup, phone, toruslarge, wineglass, pyramidmedium, camera, spheresmall, teapot, mouse, elephant, stapler, torussmall, cylindersmall, torusmedium, cubelarge, binoculars, train, mug, fryingpan, headphones, spheremedium, piggybank, watch ]
+
+val_conditions:
+  subj_id: null
+  intent: null
+  obj_name: [ lightbulb, waterbottle, knife, toothbrush, flashlight, toothpaste, doorknob, airplane, spherelarge, hammer ]
+
+test_conditions:
+  subj_id: null
+  intent: null
+  obj_name: [ alarmclock, banana, eyeglasses, hand, stamp, cylindermedium, cubemedium, flute, cubesmall, cylinderlarge ]

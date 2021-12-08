@@ -86,9 +86,9 @@ def run_training(cfg_name):
     if Path(cfg['models_dir']).joinpath("meta_files").with_suffix(".pkl").exists():
         train_meta, val_meta, test_meta = pickle.load(open(Path(cfg['models_dir']).joinpath("meta_files").with_suffix(".pkl"), 'rb'))
 
-    train_dataset = DataContainer(cfg, cfg['train_conditions'], device_type=device_type, meta_files_in=train_meta)
-    val_dataset = DataContainer(cfg, cfg['val_conditions'], device_type=device_type, meta_files_in=val_meta)
-    test_dataset = DataContainer(cfg, cfg['test_conditions'], device_type=device_type, meta_files_in=test_meta)
+    train_dataset = DataContainer(cfg, cfg['train_conditions'], device_type=device_type, meta_files_in=train_meta, randomized_start = cfg['random_start'])
+    val_dataset = DataContainer(cfg, cfg['val_conditions'], device_type=device_type, meta_files_in=val_meta, randomized_start = True)
+    test_dataset = DataContainer(cfg, cfg['test_conditions'], device_type=device_type, meta_files_in=test_meta, randomized_start = True)
 
     print(f"len train: {len(train_dataset)}")
     print(f"len val: {len(val_dataset)}")
@@ -134,8 +134,11 @@ def run_training(cfg_name):
     single_train_loader = DataLoader(train_dataset, batch_size=cfg['batch_size'],
                         shuffle=True, num_workers=num_workers)
     for in_dict, target_dict, idx, meta_data in single_train_loader:
-        training_network = config_method_dict[cfg['network_type']](cfg, in_dict, target_dict, device_type)
-        break
+        if in_dict == 0:
+            continue
+        else:
+            training_network = config_method_dict[cfg['network_type']](cfg, in_dict, target_dict, device_type)
+            break
     start_epoch = -1
     if Path(cfg['models_dir']).exists():
         file_nums = [int(x.stem.split('_')[-1]) for x in Path(cfg['models_dir']).glob("model_*.pt")]
@@ -150,9 +153,11 @@ def run_training(cfg_name):
     for epoch in tqdm(range(start_epoch + 1, cfg['epochs']), initial=start_epoch + 1,):
         training_network.model.train()
         train_loss = 0
-        for in_dict, target_dict, idx, meta_data in train_loader:
-            if in_dict == 0:
+        for loader_out in train_loader:
+            if loader_out[0] == 0:
                 continue
+            else:
+                in_dict, target_dict, idx, meta_data = loader_out
             batch_size = idx.shape[0]
             train_loss += training_network.train_epoch(in_dict, target_dict)*batch_size
         train_loss /= len(train_dataset)
@@ -176,23 +181,27 @@ def run_training(cfg_name):
         training_network.model.eval()
         counter = 0
         with torch.no_grad():
-            for in_dict, target_dict, meta_idx, meta_data in val_loader:
+            for loader_out in val_loader:
                 counter += 1
-                if in_dict == 0:
+                if loader_out[0] == 0:
                     continue
+                else:
+                    in_dict, target_dict, idx, meta_data = loader_out
                 batch_size = meta_idx.shape[0]
                 val_loss_cur, val_predicted_batch, predicted_dict = training_network.val_epoch(in_dict, target_dict)
                 val_loss += val_loss_cur * batch_size
                 for hand in cfg['hands']:
                     for test_range in cfg['test_ranges']:
                         for i in range(len(first_contact_thresholds)):
+                            if cfg['single_times']:
+                                t_range = None
+                            else:
+                                t_range = test_range
                             f_timing, f_range = first_contact_timing(predicted_dict['contacts'][hand].to(device_type),
                                                                              target_dict['contacts'][hand].to(device_type),
                                                                              device_type,
                                                                              first_contact_thresholds[
-                                                                                 i], test_range)
-                            if i == 51 and f_timing is not None and f_timing > 200:
-                                print("test")
+                                                                                 i], t_range)
                             # f_timing, f_range = first_contact_timing(
                             #     predicted_dict['contacts'][hand].to(device_type),
                             #     target_dict['contacts'][hand].to(device_type),
@@ -200,7 +209,7 @@ def run_training(cfg_name):
                             #     best_first_contact_thresh[test_range], test_range)
 
                             first_contact_totals[test_range][i] += 1
-                            if f_timing is not None and f_timing > -max(cfg['times_ahead']):
+                            if f_timing is not None and f_timing > -max(cfg['test_ranges']):
                                 first_contact_timings[test_range][i] += torch.abs(f_timing) * batch_size / len(cfg['hands'])
                                 first_contact_ranges[test_range][i] += torch.abs(f_range) * batch_size / len(cfg['hands'])
                                 all_vals[test_range][i]['error'] = torch.cat(
@@ -241,14 +250,16 @@ def run_training(cfg_name):
             first_contact_total_test[test_range] = 0
             first_contact_fail_test[test_range] = 0
             first_contact_range_test[test_range] = 0
-        if val_loss < best_val:
+        if best_first_contact_timing[test_range] < best_val:
             obj_vals = {}
             subj_vals = {}
             all_vals_test = {'error': torch.zeros((0)).cuda(), 'fail': 0}
             with torch.no_grad():
-                for in_dict, target_dict, meta_idx, meta_data in test_loader:
-                    if in_dict == 0:
+                for loader_out in test_loader:
+                    if loader_out[0] == 0:
                         continue
+                    else:
+                        in_dict, target_dict, idx, meta_data = loader_out
                     obj_name = meta_data['obj_name'][0]
                     subj_id = meta_data['subj_id'][0]
                     if obj_name not in obj_vals.keys():
@@ -258,18 +269,19 @@ def run_training(cfg_name):
                     batch_size = meta_idx.shape[0]
                     test_loss_cur, test_predicted_batch, predicted_dict = training_network.val_epoch(in_dict, target_dict)
                     test_loss += test_loss_cur * batch_size
-                    if meta_data['obj_name'][0] == 'fryingpan' and meta_data['subj_id'][0] == 's8' and  meta_data['intent'][0] == 'cook':
-                        print('hi')
                     for hand in cfg['hands']:
                         for test_range in cfg['test_ranges']:
-
+                            if cfg['single_times']:
+                                t_range = None
+                            else:
+                                t_range = test_range
                             f_timing, f_range = first_contact_timing(
                                 predicted_dict['contacts'][hand].to(device_type),
                                 target_dict['contacts'][hand].to(device_type),
                                 device_type,
-                                best_first_contact_thresh[test_range], test_range)
+                                best_first_contact_thresh[test_range], t_range)
                             first_contact_total_test[test_range] += 1
-                            if f_timing is not None and f_timing > -max(cfg['times_ahead']):
+                            if f_timing is not None and f_timing > -max(cfg['test_ranges']):
                                 first_contact_timing_test[test_range] += torch.abs(f_timing) * batch_size / len(
                                     cfg['hands'])
                                 first_contact_range_test[test_range] += torch.abs(f_range) * batch_size / len(
@@ -286,7 +298,7 @@ def run_training(cfg_name):
                                 subj_vals[subj_id]['fail'] += 1
                                 all_vals_test['fail'] += 1
 
-            best_val = val_loss
+            best_val = best_first_contact_timing[test_range]
             test_loss /= len(test_dataset)
             for test_range in cfg['test_ranges']:
                 first_contact_timing_test[test_range] /= (
@@ -343,6 +355,7 @@ def run_training(cfg_name):
                                           },
                                epoch)
 
+        print(obj_vals)
         if cfg['profile']:
             yappi.get_func_stats().print_all()
             yappi.get_thread_stats().print_all()

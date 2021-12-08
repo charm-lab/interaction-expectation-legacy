@@ -7,7 +7,7 @@ lstm3: False
 attn1: False
 attn2: False
 attn3: False
-attn4: False
+attn4: True
 
 # Network
 network_type: denselstm

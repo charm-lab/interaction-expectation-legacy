@@ -7,7 +7,7 @@ lstm3: False
 attn1: False
 attn2: False
 attn3: False
-attn4: False
+attn4: True
 
 # Network
 network_type: denselstm
@@ -75,17 +75,17 @@ datetime: null
 # filter Conditions
 # if null, load all for that condition
 train_conditions: 
-  subj_id: [s1, s2, s3, s4, s5, s6]
+  subj_id: [s1, s2, s3, s4, s9, s10]
   intent: null
   obj_name: null
 
 val_conditions:
-  subj_id: [s9, s10]
+  subj_id: [s7, s8]
   intent: null
   obj_name: null
 
 test_conditions:
-  subj_id: [s7, s8]
+  subj_id: [s5, s6]
   intent: null
   obj_name: null
 

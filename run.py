@@ -49,7 +49,8 @@ if __name__ == "__main__":
                         help='Name of experiment (optional if provided in config)')
 
     args, extras = parser.parse_known_args()
-
+    print(args)
+    print(extras)
     current_config= args.config_file
     experiment_name = args.experiment_name
 
@@ -89,7 +90,7 @@ if __name__ == "__main__":
                 cfg['transl_noise_level'] = 0
             cfg['data_path'] += f'_{cfg["joint_noise_level"]}_{cfg["transl_noise_level"]}_noise'
         new_test_ranges = []
-        if len(cfg['times_ahead']) == 1:
+        if len(cfg['times_ahead']) == 1 and not cfg['single_times']:
             cfg['times_ahead'] = list(range(cfg['times_ahead'][0]+1))
         for test_range in cfg['test_ranges']:
             if test_range <= max(cfg['times_ahead']):
