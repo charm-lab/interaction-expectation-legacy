@@ -211,6 +211,13 @@ class DenseNetLSTM(TrainingMethod):
             predicted_dict = self.prediction_to_dict(predicted, target_dict)
         return val_loss, predicted, predicted_dict
 
+    def run_inference(self, input):
+        with torch.no_grad():
+            lstm_in = input.permute([1, 0, 2])
+            predicted = self.model(lstm_in)
+            predicted = predicted.permute([1, 0, 2]).cpu()
+        return predicted
+
     def dict_to_input(self, input_dict, target_dict, get_dims = False, to_cuda=True):
         in_verts = torch.cat(list(torch.cat((input_dict['hand_points'][cur_hand], input_dict['dists'][cur_hand]), 3) for cur_hand in self.cfg['hands']), 2)
 

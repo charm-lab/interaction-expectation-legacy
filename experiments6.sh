@@ -1,0 +1,6 @@
+#!/bin/bash
+python run.py --directories_file configs/machine_directories/juno_directories.yml --config_file configs/experiments/experiment_config_obj.yml --experiment_name obj_0_5 --test_ranges [12] --times_ahead [12] --single_times True --joint_noise_level 0 --transl_noise_level 5
+python run.py --directories_file configs/machine_directories/juno_directories.yml --config_file configs/experiments/experiment_config_obj.yml --experiment_name obj_10_5 --test_ranges [12] --times_ahead [12] --single_times True --joint_noise_level 10 --transl_noise_level 5
+
+python run.py --directories_file configs/machine_directories/juno_directories.yml --config_file configs/experiments/experiment_config_obj.yml --experiment_name obj_v_10_5c --test_ranges [12] --times_ahead [12] --single_times True --joint_noise_level 10 --transl_noise_level 5 --data_type vertices
+python run.py --directories_file configs/machine_directories/juno_directories.yml --config_file configs/experiments/experiment_config_obj.yml --experiment_name obj_v_30_5c --test_ranges [12] --times_ahead [12] --single_times True --joint_noise_level 30 --transl_noise_level 5 --data_type vertices

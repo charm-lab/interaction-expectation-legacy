@@ -1,5 +1,7 @@
-experiment_name: fold0
-continue_experiment: False
+experiment_name: fold4_single_copy
+continue_experiment: True
+
+print_stats: False
 
 lstm1: False
 lstm2: False
@@ -7,7 +9,7 @@ lstm3: False
 attn1: False
 attn2: False
 attn3: False
-attn4: False
+attn4: True
 
 # Network
 network_type: denselstm
@@ -41,8 +43,8 @@ seed: 0
 experiment_type: config_exp #['n_fold', 'config_exp']
 parallel_load: False
 test_ranges: [12]
-times_ahead: [13]
-single_times: False
+times_ahead: [12]
+single_times: True
 random_start: True
 contact_out: True
 points_out: False
