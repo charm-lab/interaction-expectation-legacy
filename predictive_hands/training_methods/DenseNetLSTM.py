@@ -45,9 +45,6 @@ class DenseNetLSTM(TrainingMethod):
             super().__init__()
             self.device_type = device_type
             self.cfg = cfg
-            #hidden_dim = cfg['dense_dim']
-        #just transpose so points are batch
-            #self.triangle_linear = prune.custom_from_mask(nn.Linear(input_dim, input_dim), name="weight", mask=torch.tril(torch.ones(input_dim, input_dim), diagonal=0))
 
             self.norm1 = nn.BatchNorm1d(input_dim, track_running_stats=False)
             self.fc1 = nn.Linear(input_dim, hidden_dim)
