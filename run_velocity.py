@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 
 from predictive_hands.train.train_loop import run_training
-
+from predictive_hands.utilities.velocity_info import make_vel_charts
 
 def createConfigTest(cfg):
     s_config = cfg.copy()
@@ -29,7 +29,7 @@ def createConfigTest(cfg):
 
 def runExperiment(folder_name):
     yml = Path(folder_name).joinpath('config', 'config').with_suffix('.yml')
-    run_training(yml)
+    make_vel_charts(yml)
     return
 
 experiment_type_dict = {'config_exp': createConfigTest}

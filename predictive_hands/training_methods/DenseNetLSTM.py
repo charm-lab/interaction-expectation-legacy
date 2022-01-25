@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from torch import optim
+from torch.nn.utils import prune
 
 from predictive_hands.training_methods.TrainingMethod import TrainingMethod
 
@@ -13,6 +14,13 @@ def arg_loss(predicted, target, soft_argmax):
 def kl_loss(predicted, target, logsoftmax, kl_div_loss):
     target_test = target / torch.sum(target)
     return kl_div_loss(logsoftmax(predicted), target_test)
+
+def sliding_batch_norm(x):
+    x_new = torch.zeros(x.shape)
+    for i in range(0, x.shape[0]):
+        x_seq = x[0:i]
+        x_new[i] = (x[i] - torch.mean(x_seq))/(torch.sqrt(torch.var(x_seq) + .00001))
+    return x_new
 
 
 contact_loss_dict = {'kl_div': None, 'mse': nn.MSELoss(), 'arg_dist': None}
@@ -36,43 +44,85 @@ class DenseNetLSTM(TrainingMethod):
         def __init__(self, cfg, device_type, input_dim, hidden_dim):
             super().__init__()
             self.device_type = device_type
-
+            self.cfg = cfg
             #hidden_dim = cfg['dense_dim']
+        #just transpose so points are batch
+            #self.triangle_linear = prune.custom_from_mask(nn.Linear(input_dim, input_dim), name="weight", mask=torch.tril(torch.ones(input_dim, input_dim), diagonal=0))
 
-            self.norm1 = nn.BatchNorm1d(hidden_dim, track_running_stats = False)
+            self.norm1 = nn.BatchNorm1d(input_dim, track_running_stats=False)
             self.fc1 = nn.Linear(input_dim, hidden_dim)
             self.relu1 = nn.ReLU(hidden_dim)
-            self.norm2 = nn.BatchNorm1d(hidden_dim, track_running_stats = False)
+            self.norm2 = nn.BatchNorm1d(hidden_dim, track_running_stats=False)
             self.dropout1 = nn.Dropout(cfg['dense_dropout'])
             self.fc2 = nn.Linear(hidden_dim, hidden_dim)
             self.relu2 = nn.ReLU(hidden_dim)
-
             self.dropout2 = nn.Dropout(cfg['dense_dropout'])
 
-        def forward(self, x, batch=None):
+            if cfg['lstm1']:
+                self.lstm1 = nn.LSTM(input_dim, input_dim)
+            if cfg['lstm2']:
+                self.lstm2 = nn.LSTM(hidden_dim, hidden_dim)
+            if cfg['lstm3']:
+                self.lstm3 = nn.LSTM(hidden_dim, hidden_dim)
 
-            x = self.fc1(x)
-            x = self.norm1(x)
-            #x = self.relu1(x)
+            if cfg['attn1']:
+                self.attn1 = nn.MultiheadAttention(input_dim, num_heads=4)
+            if cfg['attn2']:
+                self.attn2 = nn.MultiheadAttention(hidden_dim, num_heads=10)
+            if cfg['attn3']:
+                self.attn3 = nn.MultiheadAttention(hidden_dim, num_heads=10)
+
+
+        def sliding_batch_norm(self, x):
+            x_new = torch.zeros(x.shape, device=self.device_type)
+            x_new[0] = x[0]
+            for i in range(1, x.shape[0]):
+                x_seq = x[0:i]
+                x_new[i] = (x[i] - torch.mean(x_seq)) / (torch.sqrt(torch.var(x_seq) + .00001))
+            return x_new
+
+        def forward(self, x, batch=None):
+            #x = self.norm1(x)
+            if self.cfg['lstm1']:
+                x, _ = self.lstm1(x)
+            if self.cfg['attn1']:
+                x, _ = self.attn1(x,x,x, attn_mask=torch.triu(torch.ones((x.shape[0],x.shape[0]), dtype=torch.bool),diagonal=1).to(self.device_type))
+            x = self.fc1(x.clone())
+            if self.cfg['lstm2']:
+                x,_ = self.lstm2(x)
+            if self.cfg['attn2']:
+                x,_ = self.attn2(x,x,x,attn_mask=torch.triu(torch.ones((x.shape[0],x.shape[0]), dtype=torch.bool),diagonal=1).to(self.device_type))
+            #x = x.view(duration, -1)
+            x = self.relu1(x)
             x = self.dropout1(x)
 
             x = self.fc2(x)
-
-            x = self.norm2(x)
+            if self.cfg['lstm3']:
+                x,_ = self.lstm3(x)
+            if self.cfg['attn3']:
+                x,_ = self.attn3(x,x,x,attn_mask=torch.triu(torch.ones((x.shape[0],x.shape[0]), dtype=torch.bool),diagonal=1).to(self.device_type))
+            #x = x.view(duration, -1)
+            #x = self.norm2(x)
+            x = self.relu2(x)
             x = self.dropout2(x)
-            #x = self.relu2(x)
+
 
             return x
 
     class denseNetLSTMNetwork(nn.Module):
         def __init__(self, cfg, input_dim, predicted_dim, device_type, use_sigmoid):
             super().__init__()
-
+            self.cfg = cfg
+            self.device_type = device_type
             self.dense1 = DenseNetLSTM.denseBlock(cfg, device_type, input_dim, cfg['dense_dim_1'])
             self.dense2 = DenseNetLSTM.denseBlock(cfg, device_type,  input_dim + cfg['dense_dim_1'], cfg['dense_dim_2'])
 
-            self.lstm = nn.LSTM(input_dim + cfg['dense_dim_1'] + cfg['dense_dim_2'], cfg['lstm_dim'])
-            self.fc = nn.Linear(cfg['lstm_dim'], predicted_dim)
+            if cfg['attn4']:
+                self.attn = nn.MultiheadAttention(input_dim + cfg['dense_dim_1'] + cfg['dense_dim_2'], num_heads=1)
+                self.fc_attn = nn.Linear(input_dim + cfg['dense_dim_1'] + cfg['dense_dim_2'], predicted_dim)
+            else:
+                self.lstm = nn.LSTM(input_dim + cfg['dense_dim_1'] + cfg['dense_dim_2'], cfg['lstm_dim'])
+                self.fc = nn.Linear(cfg['lstm_dim'], predicted_dim)
             self.lstm_dropout = nn.Dropout(cfg['lstm_dropout'])
 
             self.use_sigmoid = use_sigmoid
@@ -81,17 +131,23 @@ class DenseNetLSTM(TrainingMethod):
                 self.sigmoid = nn.Sigmoid()
 
         def forward(self, x):
-            duration = x.shape[0]
-            x = x.view((duration, -1))
             x1 = self.dense1(x)
-            x2 = self.dense2(torch.cat((x,x1), dim=1))
-            x_lstm, _ = self.lstm(torch.cat((x,x1,x2),dim=1).view(duration, 1, -1))
-            #x_lstm, _ = self.lstm(x.view(duration, 1, -1))
-            x_out = self.fc(x_lstm)
-            x_out = self.lstm_dropout(x_out)
+            x2 = self.dense2(torch.cat((x,x1), dim=2))
+            x = torch.cat((x,x1,x2),dim=2)
+            if not self.cfg['attn4']:
+                x_lstm, _ = self.lstm(x)
+                #x_lstm, _ = self.lstm(x.view(duration, 1, -1))
+                x = self.fc(x_lstm)
+                x = self.lstm_dropout(x)
+            else:
+                x, _ = self.attn(x, x, x, attn_mask=torch.triu(torch.ones((x.shape[0], x.shape[0]), dtype=torch.bool),
+                                                                diagonal=1).to(self.device_type))
+                self.fc_attn(x)
             if False:
                 x_out = self.sigmoid(x_out)
-            return x_out
+            return x
+
+
 
     def __init__(self, cfg, input_dict, target_dict, device_type):
         self.cfg = cfg
@@ -124,13 +180,13 @@ class DenseNetLSTM(TrainingMethod):
         r_loss = self.recon_loss(predicted[:, :, self.recon_dims], target[:, :, self.recon_dims])
         if predicted.isnan().any() or target.isnan().any():
             print("hi")
-            weifjs = 3
         c_loss = self.contact_loss(predicted[:, :, self.contact_dims], target[:, :, self.contact_dims])
         r_loss = 0 if torch.isnan(r_loss) else r_loss
         c_loss = 0 if torch.isnan(c_loss) else c_loss
         return r_loss * alpha + c_loss * beta
 
     def train_epoch(self, input_batch, target_batch):
+        torch.autograd.set_detect_anomaly(True)
         input_batch, target_batch = self.dict_to_input(input_batch, target_batch)
         lstm_in = input_batch.permute([1,0,2])
         self.model.zero_grad()
@@ -150,9 +206,8 @@ class DenseNetLSTM(TrainingMethod):
             lstm_in = input.permute([1,0,2])
             predicted = self.model(lstm_in)
             predicted = predicted.permute([1,0,2])
-            #val_loss = self.loss_function(predicted, target, alpha=self.cfg['train_objective'][0],
-                                          #beta=self.cfg['train_objective'][1])
-            val_loss = 0
+            val_loss = self.loss_function(predicted, target, alpha=self.cfg['train_objective'][0],
+                                          beta=self.cfg['train_objective'][1])
             predicted_dict = self.prediction_to_dict(predicted, target_dict)
         return val_loss, predicted, predicted_dict
 

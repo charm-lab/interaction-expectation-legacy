@@ -17,7 +17,7 @@ from predictive_hands.utilities import utils
 
 class DataContainer(Dataset):
 
-    def __init__(self, cfg, filter_conditions, device_type, meta_files_in = None):
+    def __init__(self, cfg, filter_conditions, device_type, meta_files_in = None, randomized_start = False):
         self.filter_conditions = filter_conditions
         self.cfg = cfg
         if meta_files_in is None:
@@ -25,6 +25,7 @@ class DataContainer(Dataset):
         else:
             self.meta_files = meta_files_in
         self.device_type = device_type
+        self.randomized_start = randomized_start
     
     def __len__(self):
         return len(self.meta_files)
@@ -52,7 +53,7 @@ class DataContainer(Dataset):
     def generateInputTarget(self, meta_file):
         times_ahead = self.cfg['times_ahead']
         max_times_ahead = max(times_ahead)
-        meta_file = pathlib.Path('/scr-ssd/').joinpath(*meta_file.parts[2:])
+        #meta_file = pathlib.Path('/scr-ssd/').joinpath(*meta_file.parts[2:])
         meta_data = np.load(meta_file, allow_pickle=True).item()
         grab_instance = GRABInstance(self.cfg, self.device_type, meta_data=meta_data)
         contacts = grab_instance.loadContacts(self.cfg['hands'])
@@ -98,7 +99,7 @@ class DataContainer(Dataset):
         hand_points_range = {}
         for hand in hand_points.keys():
             start_time = 0
-            if self.cfg['random_start']:
+            if self.randomized_start:
                 max_time = max(1, first_index_flats[hand] - 2 * max_times_ahead)
                 start_time = np.random.randint(0, max_time)
             end_time = np.shape(hand_points[hand])[0]

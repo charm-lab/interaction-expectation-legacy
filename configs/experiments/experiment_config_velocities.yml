@@ -40,10 +40,10 @@ seed: 0
 
 experiment_type: config_exp #['n_fold', 'config_exp']
 parallel_load: False
-test_ranges: [12]
-times_ahead: [13]
-single_times: False
-random_start: True
+test_ranges: [0]
+times_ahead: [0]
+single_times: True
+random_start: False
 contact_out: True
 points_out: False
 image_frequency: 10
@@ -86,6 +86,11 @@ val_conditions:
 
 test_conditions:
   subj_id: [s7, s8]
+  intent: null
+  obj_name: null
+
+all_conditions:
+  subj_id: null
   intent: null
   obj_name: null
 
