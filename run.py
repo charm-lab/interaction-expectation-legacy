@@ -78,6 +78,8 @@ if __name__ == "__main__":
         cfg_old = yaml.full_load(open(cfg_old_name, 'r'))
         for key in parser_dict.keys():
             cfg_old[key] = parser_dict[key]
+        directories_cfg = yaml.full_load(open(args.directories_file, 'r'))
+        cfg_old.update(directories_cfg)
         yaml.dump(cfg_old, open(cfg_old_name, 'w'))
     else:
         cfg['datetime'] = str(datetime.datetime.now())
@@ -88,7 +90,7 @@ if __name__ == "__main__":
                 cfg['joint_noise_level'] = 0
             if cfg['transl_noise_level'] is None:
                 cfg['transl_noise_level'] = 0
-            cfg['data_path'] += f'_{cfg["joint_noise_level"]}_{cfg["transl_noise_level"]}_noise'
+            cfg['data_path'] += f'_{cfg["joint_noise_level"]}_{cfg["transl_noise_level"]}_noise4'
         new_test_ranges = []
         if len(cfg['times_ahead']) == 1 and not cfg['single_times']:
             cfg['times_ahead'] = list(range(cfg['times_ahead'][0]+1))
@@ -96,6 +98,5 @@ if __name__ == "__main__":
             if test_range <= max(cfg['times_ahead']):
                 new_test_ranges.append(test_range)
         cfg['test_ranges'] = new_test_ranges
-
         experiment_type_dict[cfg['experiment_type']](cfg)
     runExperiment(cfg['experiment_dir'])

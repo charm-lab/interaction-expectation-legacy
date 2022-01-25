@@ -27,10 +27,13 @@ if __name__ == "__main__":
     parser.add_argument('--experiment_name', required=False, type=str,
                         help='Name of experiment (optional if provided in config)')
 
-    args = parser.parse_args()
-
+    args, extras = parser.parse_known_args()
+    print(args)
+    print(extras)
     current_config= args.config_file
     experiment_name = args.experiment_name
+
+    parser_dict = {extras[i].replace('--', ''): yaml.full_load(extras[i + 1]) for i in range(0, len(extras), 2)}
 
 
     if current_config is None:
@@ -43,10 +46,13 @@ if __name__ == "__main__":
 
     if experiment_name is not None:
         cfg['experiment_name'] = experiment_name
+    for key in parser_dict.keys():
+        cfg[key] = parser_dict[key]
 
     if cfg['joint_noise_error'] is not None:
-        cfg['joint_noise'] = cfg['joint_noise_error']*(np.sqrt(np.pi/8))
-        cfg['transl_noise'] = cfg['transl_noise_error'] * (np.sqrt(np.pi / 8))
+        cfg['joint_noise'] = cfg['joint_noise_error']*(np.sqrt(np.pi/8))/1000
+        cfg['transl_noise'] = cfg['transl_noise_error'] * (np.sqrt(np.pi / 8))/1000
+    cfg['data_path'] += f'_{cfg["joint_noise_error"]}_{cfg["transl_noise_error"]}_noise4'
 
 
     cfg['experiment_dir'] = str(Path(cfg['exp_dir_base']).joinpath('experiments', cfg['experiment_name']))

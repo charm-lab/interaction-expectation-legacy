@@ -164,15 +164,17 @@ class DataContainer(Dataset):
         data_holder.generateObjVerts(reduced='full')
 
         data_holder.generateHandJoints()
-        #data_holder.generateHandVerts()
+        data_holder.generateHandVerts()
 
         data_holder.generateContacts()
 
         #data_holder.generateHandFaces()
         data_holder.generatePointDistsJoints()
+        data_holder.generatePointDists()
 
         data_holder.saveContacts()
-        #data_holder.saveHandVerts()
+        data_holder.saveHandVerts()
+        data_holder.savePointDists()
         #data_holder.saveHandFaces()
         data_holder.saveHandJoints()
         data_holder.savePointDistsJoints()
@@ -215,7 +217,8 @@ class DataContainer(Dataset):
 
     @classmethod
     def generateGRABData(self,cfg):
-        num_cores = int(multiprocessing.cpu_count() / 2)
+        num_cores = int(multiprocessing.cpu_count())
+        print(f'num cores: {num_cores}')
         if cfg['visualize_generation']:
             from predictive_hands.utilities.visualize_data import VisualizeHands
             os.environ['PYOPENGL_PLATFORM'] = 'egl'
@@ -243,7 +246,7 @@ class DataContainer(Dataset):
             return None, None
         data_holder.generateAndSaveMeta()
         data_holder.generateSmplx()
-        data_holder.forwardSmplx(baseline_window=cfg['test_ranges'][0])
+        data_holder.forwardSmplx(baseline_window=cfg['baseline_window'])
         data_holder.loadObjBaseMesh(reduced='full')
         data_holder.generateObjVerts(reduced='full')
         data_holder.obj_parms['global_orient'] = data_holder.obj_parms['global_orient'][2:, :]

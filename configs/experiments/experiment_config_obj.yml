@@ -1,5 +1,5 @@
-experiment_name: fold0
-continue_experiment: False
+experiment_name: obj_v_0_0
+continue_experiment: True
 
 lstm1: False
 lstm2: False

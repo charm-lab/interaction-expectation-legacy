@@ -30,7 +30,7 @@ def make_vel_charts(cfg_name):
     torch.cuda.set_device(int(cfg["gpu_num"]))
 
     all_dataset = DataContainer(cfg, cfg['train_conditions'], device_type=device_type, meta_files_in=None,
-                                  randomized_start=cfg['random_start'])
+                                  randomized_start=False)
 
     all_loader = DataLoader(all_dataset, batch_size=cfg['batch_size'],
                              shuffle=False, num_workers=0)
@@ -41,11 +41,29 @@ def make_vel_charts(cfg_name):
             continue
         points = in_dict['hand_points']['right']
         diff = points[0, 1:, :, :] - points[0, :-1, :,:]
-        cur_vels = torch.norm(torch.mean(diff, dim=1), dim=1)
+        cur_vels = torch.norm(120*torch.mean(diff, dim=1), dim=1)
         all_vels = torch.cat((all_vels, cur_vels))
         past_n = torch.cat((past_n, torch.unsqueeze(cur_vels[-back_window:], dim=0)), dim=0)
     mean_n = torch.mean(past_n, dim=0)
     std_n = torch.std(past_n, dim=0)
-    #plt.hist(all_vels.cpu().numpy(), bins=100)
-    plt.errorbar(np.arange(back_window), mean_n, yerr=std_n)
+    plt.rcParams["font.family"] = "Times New Roman"
+    fontsize = 15
+    plt.rc('font', size=fontsize)  # controls default text sizes
+    plt.rc('axes', titlesize=fontsize)  # fontsize of the axes title
+    plt.rc('axes', labelsize=fontsize)  # fontsize of the x and y labels
+    plt.rc('xtick', labelsize=fontsize)  # fontsize of the tick labels
+    plt.rc('ytick', labelsize=fontsize)  # fontsize of the tick labels
+    plt.rc('legend', fontsize=fontsize)  # legend fontsize
+    plt.rc('figure', titlesize=fontsize)  # fontsize of the figure title
+    x_vals = 1000*(np.arange(1, back_window+1) - back_window)/120
+    y_vals = mean_n
+    plt.plot(x_vals, y_vals)
+    plt.fill_between(x_vals, y_vals - std_n, y_vals + std_n, alpha=0.6)
+    print(repr(-x_vals))
+    print(repr(y_vals))
+    print(repr(std_n))
+    plt.xlabel("Time Until Contact (ms)")
+    plt.ylabel("Speed (m/s)")
+    plt.tight_layout()
+    plt.savefig("speed.pdf",bbox_inches='tight')
     plt.show()
