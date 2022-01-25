@@ -1,25 +1,12 @@
 experiment_name: fold4_single_copy
 continue_experiment: True
 
-print_stats: False
-
-lstm1: False
-lstm2: False
-lstm3: False
-attn1: False
-attn2: False
-attn3: False
-attn4: True
-
 # Network
 network_type: denselstm
 dense_dim_1: 2000
 dense_dim_2: 4000
-lstm_dim: 4000
 lr: 1e-4
 decay: 0
-dense_dropout: 0
-lstm_dropout: 0
 
 # Loss
 train_objective: [0,1] #[recon_error, contact_error]

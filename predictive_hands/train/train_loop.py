@@ -76,15 +76,11 @@ def run_training(cfg_name):
         os.environ['PYOPENGL_PLATFORM'] = 'egl'
         hand_vis = VisualizeHands(cfg, offscreen=True, obj_view = False)
 
-    distance_error = lambda predicted, target, device_type: distance_error_base(predicted, target, device_type)
-    first_contact_error = lambda predicted, target, device_type: first_contact_error_base(predicted, target, device_type)
     first_contact_timing = lambda predicted, target, device_type, threshold, test_range: first_contact_timing_base(predicted, target, device_type, threshold, test_range)
 
     writer = SummaryWriter(cfg['results_dir'])
 
     train_meta = val_meta = test_meta = None
-    #if Path(cfg['models_dir']).joinpath("meta_files").with_suffix(".pkl").exists():
-    #    train_meta, val_meta, test_meta = pickle.load(open(Path(cfg['models_dir']).joinpath("meta_files").with_suffix(".pkl"), 'rb'))
 
     train_dataset = DataContainer(cfg, cfg['train_conditions'], device_type=device_type, meta_files_in=train_meta, randomized_start = cfg['random_start'])
     val_dataset = DataContainer(cfg, cfg['val_conditions'], device_type=device_type, meta_files_in=val_meta, randomized_start = True)
@@ -150,105 +146,6 @@ def run_training(cfg_name):
             training_network.epoch = checkpoint['epoch']
             training_network.loss = checkpoint['loss']
 
-    #if cfg['print_stats']:
-    if False:
-        yappi.set_clock_type("cpu")
-        yappi.start()
-        test_loss = 0
-        first_contact_timing_test = {}
-        first_contact_total_test = {}
-        first_contact_fail_test = {}
-        first_contact_range_test = {}
-        for test_range in cfg['test_ranges']:
-            first_contact_timing_test[test_range] = 0
-            first_contact_total_test[test_range] = 0
-            first_contact_fail_test[test_range] = 0
-            first_contact_range_test[test_range] = 0
-        threshold = cfg['stats_threshold']
-        obj_vals = {}
-        subj_vals = {}
-        all_vals = {'error': torch.zeros((0)).cuda(), 'fail': 0}
-        with torch.no_grad():
-            total_length = 0
-            training_network.model.eval()
-            training_network.model.zero_grad()
-            for in_dict, target_dict, meta_idx, meta_data in test_loader:
-                if in_dict == 0:
-                    continue
-                total_length += in_dict['hand_points']['right'].shape[1]
-                in_dict['hand_points']['right'] = in_dict['hand_points']['right'][:, :, :, :]
-                in_dict['dists']['right'] = in_dict['dists']['right'][:, :, :, :]
-                target_dict['contacts']['right'] = target_dict['contacts']['right'][:, :, :]
-                target_dict['hand_points']['right'] = target_dict['hand_points']['right'][:, :, :, :]
-                obj_name = meta_data['obj_name'][0]
-                subj_id = meta_data['subj_id'][0]
-                if obj_name not in obj_vals.keys():
-                    obj_vals[obj_name] = {'error': torch.zeros((0)).cuda(), 'fail': 0}
-                if subj_id not in subj_vals.keys():
-                    subj_vals[subj_id] = {'error': torch.zeros((0)).cuda(), 'fail': 0}
-                batch_size = meta_idx.shape[0]
-                test_loss_cur, test_predicted_batch, predicted_dict = training_network.val_epoch(in_dict, target_dict)
-                for hand in cfg['hands']:
-                    for test_range in cfg['test_ranges']:
-                        if cfg['single_times']:
-                            t_range = None
-                        else:
-                            t_range = test_range
-                        f_timing, f_range = first_contact_timing(
-                            predicted_dict['contacts'][hand].to(device_type),
-                            target_dict['contacts'][hand].to(device_type),
-                            device_type,
-                            threshold, t_range)
-                        first_contact_total_test[test_range] += 1
-                        if f_timing is not None and f_timing > -max(cfg['times_ahead']):
-                            first_contact_timing_test[test_range] += torch.abs(f_timing) * batch_size / len(
-                                cfg['hands'])
-                            first_contact_range_test[test_range] += torch.abs(f_range) * batch_size / len(
-                                cfg['hands'])
-                            obj_vals[obj_name]['error'] = torch.cat(
-                                (obj_vals[obj_name]['error'], torch.abs(f_timing).unsqueeze(0)))
-                            subj_vals[subj_id]['error'] = torch.cat(
-                                (subj_vals[subj_id]['error'], torch.abs(f_timing).unsqueeze(0)))
-                            all_vals['error'] = torch.cat(
-                                (all_vals['error'], torch.abs(f_timing).unsqueeze(0)))
-                        else:
-                            first_contact_fail_test[test_range] += 1
-                            obj_vals[obj_name]['fail'] += 1
-                            subj_vals[subj_id]['fail'] += 1
-                            all_vals['fail'] += 1
-        test_loss /= len(test_dataset)
-        for test_range in cfg['test_ranges']:
-            first_contact_timing_test[test_range] /= (
-                    first_contact_total_test[test_range] - first_contact_fail_test[test_range])
-            first_contact_range_test[test_range] /= (
-                    first_contact_total_test[test_range] - first_contact_fail_test[test_range])
-            first_contact_fail_test[test_range] /= first_contact_total_test[test_range]
-        for obj in obj_vals.keys():
-            count = obj_vals[obj]['fail'] + torch.numel(obj_vals[obj]['error'])
-            fail_rate = obj_vals[obj]['fail'] / count
-            error = torch.mean(obj_vals[obj]['error'])
-            error_std = torch.std(obj_vals[obj]['error'])
-            print(f'{obj}: fail:{fail_rate} error:{error} std:{error_std}')
-        for subj in subj_vals.keys():
-            count = subj_vals[subj]['fail'] + torch.numel(subj_vals[subj]['error'])
-            fail_rate = subj_vals[subj]['fail'] / count
-            error = torch.mean(subj_vals[subj]['error'])
-            error_std = torch.std(subj_vals[subj]['error'])
-            print(f'{subj}: fail:{fail_rate} error:{error} std:{error_std}')
-        count = all_vals['fail'] + torch.numel(all_vals['error'])
-        fail_rate = all_vals['fail'] / count
-        error = torch.mean(all_vals['error'])
-        error_std = torch.std(all_vals['error'])
-        print(f'All: fail:{fail_rate} error:{error} std:{error_std}')
-        print(
-            f'All: fail:{first_contact_fail_test[test_range]} error:{first_contact_timing_test[test_range]} std:{error_std}')
-        print('check')
-        print(count)
-        print(total_length)
-        yappi.stop()
-        yappi.get_func_stats().print_all()
-        return
-
     best_val = float('inf')
     for epoch in tqdm(range(start_epoch + 1, cfg['epochs']), initial=start_epoch + 1,):
         training_network.model.train()
@@ -302,11 +199,6 @@ def run_training(cfg_name):
                                                                              device_type,
                                                                              first_contact_thresholds[
                                                                                  i], t_range)
-                            # f_timing, f_range = first_contact_timing(
-                            #     predicted_dict['contacts'][hand].to(device_type),
-                            #     target_dict['contacts'][hand].to(device_type),
-                            #     device_type,
-                            #     best_first_contact_thresh[test_range], test_range)
 
                             first_contact_totals[test_range][i] += 1
                             if f_timing is not None and f_timing > -max(cfg['test_ranges']):
@@ -350,7 +242,7 @@ def run_training(cfg_name):
             first_contact_total_test[test_range] = 0
             first_contact_fail_test[test_range] = 0
             first_contact_range_test[test_range] = 0
-        if True:#best_first_contact_timing[test_range] < best_val:
+        if best_first_contact_timing[test_range] < best_val:
             obj_vals = {}
             subj_vals = {}
             all_vals_test = {'error': torch.zeros((0)).cuda(), 'fail': 0}
@@ -397,7 +289,6 @@ def run_training(cfg_name):
                                 obj_vals[obj_name]['fail'] += 1
                                 subj_vals[subj_id]['fail'] += 1
                                 all_vals_test['fail'] += 1
-            #print(obj_vals)
             best_val = best_first_contact_timing[test_range]
             test_loss /= len(test_dataset)
             for test_range in cfg['test_ranges']:
@@ -459,8 +350,7 @@ def run_training(cfg_name):
         if cfg['profile']:
             yappi.get_func_stats().print_all()
             yappi.get_thread_stats().print_all()
-        #if epoch % cfg['image_frequency'] == 0:
-        if True:
+        if epoch % cfg['image_frequency'] == 0:
             with sns.axes_style("white"):
                 max_times_ahead = max(cfg['times_ahead'])
                 fig = plt.figure()
@@ -496,17 +386,6 @@ def run_training(cfg_name):
                 for i in range(len(save_names)):
                     img = Image.open(save_names[i])
                     writer.add_image(f'epoch_{epoch}', np.array(img), dataformats="HWC", global_step=save_frames[i])
-
-        # if epoch % cfg['epoch_checkmarks'] == 0 or epoch == cfg['epochs']-1:
-        #     for child in Path(cfg['models_dir']).glob('*'):
-        #         if child.is_file():
-        #             child.unlink()
-        #     torch.save({
-        #     'epoch': epoch,
-        #     'model_state_dict': model.state_dict(),
-        #     'optimizer_state_dict': optimizer.state_dict(),
-        #     'loss': loss
-        #     }, Path(cfg['models_dir']).joinpath("model_" + str(epoch)).with_suffix(".pt"))
     writer.close()
 
 def writeImage(hand_vis, val_dataset, meta_idx, input_dict, predicted_dict, target_dict, cfg):

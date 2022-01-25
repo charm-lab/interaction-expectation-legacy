@@ -53,7 +53,6 @@ class DataContainer(Dataset):
     def generateInputTarget(self, meta_file):
         times_ahead = self.cfg['times_ahead']
         max_times_ahead = max(times_ahead)
-        #meta_file = pathlib.Path('/scr-ssd/').joinpath(*meta_file.parts[2:])
         meta_data = np.load(meta_file, allow_pickle=True).item()
         grab_instance = GRABInstance(self.cfg, self.device_type, meta_data=meta_data)
         contacts = grab_instance.loadContacts(self.cfg['hands'])
@@ -76,10 +75,6 @@ class DataContainer(Dataset):
             if self.cfg['smoothing'] == 'gaussian':
                 conv_kernel = scipy.ndimage.filters.gaussian_filter(ones_array, self.cfg['first_correct_sigma'])
                 first_correct_vectors[hand] = np.expand_dims(np.convolve(conv_kernel, first_only_vector, mode='same'),axis=1)
-            elif self.cfg['smoothing'] == 'inverse':
-                dist_vector = np.arange(0, first_only_vector.shape[0]) - first_index_flat
-                dist_vector = np.reciprocal((np.abs(dist_vector) + 1).astype('float'))
-                first_correct_vectors[hand] = np.expand_dims(dist_vector, axis=1)
             else:
                 first_correct_vectors[hand] = np.expand_dims(first_only_vector, axis=1)
             if np.max(first_correct_vectors[hand]) > 0:
@@ -296,17 +291,7 @@ class DataContainer(Dataset):
                     if error[1] not in obj_errors.keys():
                         obj_errors[error[1]] = []
                     obj_errors[error[1]].append(error[0])
-            for obj_name in obj_errors.keys():
-                print(obj_name)
-                errors = obj_errors[obj_name]
-                print(len(errors))
-                errors = [e for e in errors if e is not None]
-                len_all = len(errors)
-                errors = [e for e in errors if e != -1]
-                print(errors)
-                print(np.mean(errors))
-                print(np.std(errors))
-                print((len_all - len(errors))/len_all)
+
         else:
             errors = []
             for seq in list(all_seqs)[0:50]:
@@ -318,16 +303,6 @@ class DataContainer(Dataset):
                     if error[1] not in obj_errors.keys():
                         obj_errors[error[1]] = []
                     obj_errors[error[1]].append(error[0])
-            for obj_name in obj_errors.keys():
-                print(obj_name)
-                errors = obj_errors[obj_name]
-                print(len(errors))
-                errors = [e for e in errors if e is not None]
-                len_all = len(errors)
-                errors = [e for e in errors if e != -1]
-                print(errors)
-                print(sum(errors) / len(errors))
-                print((len_all - len(errors)) / len_all)
 
 
 
